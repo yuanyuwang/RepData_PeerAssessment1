@@ -1,20 +1,47 @@
+``` {r setoptions, echo=TRUE}
+```
 # Reproducible Research: Peer Assessment 1
-
-
 ## Loading and preprocessing the data
-
-
-
+```{r}
+filename<-"activity.csv"
+data<-read.table(filename, header=TRUE, sep=",",stringsAsFactors=FALSE)
+data<-transform(data, date = as.Date(as.character(date)))
+```
 ## What is mean total number of steps taken per day?
+```{r, echo=TRUE}
+cleanData<-data[complete.cases(data),]
+totalSteps<- aggregate(cleanData$steps, by=list(cleanData$date), "sum")
+hist(totalSteps$x, main="Distribution of Steps Taken Per Day",xlab="Total Number of steps Per Day", col="red")
+cat("Mean Value:",mean(totalSteps$x))
+cat("Median Value:",median(totalSteps$x))
 
-
-
+```
 ## What is the average daily activity pattern?
-
-
+```{r, echo=TRUE}
+intervalSteps<- aggregate(cleanData$steps, by=list(cleanData$interval), "mean")
+plot(intervalSteps$Group.1, intervalSteps$x,type="l",xlab="5-Minute Interval", ylab="Average Number of Steps Taken",
+     main="Average Daily Activity Pattern", col="blue")
+cat("The interval at",intervalSteps[which.max(intervalSteps$x),1],"contains the maximum number of steps")
+```
 
 ## Imputing missing values
-
+```{r, echo=TRUE}
+cat("Total number of missing value is",sum(is.na(data$steps)))
+suppressWarnings(library( gam))
+data2<-na.gam.replace(data)
+totalSteps2<- aggregate(data2$steps, by=list(data2$date), "sum")
+hist(totalSteps2$x, main="Distribution of Steps Taken Per Day",xlab="Total Number of steps Per Day", col="red")
+cat("Mean Value:",mean(totalSteps2$x))
+cat("Median Value:",median(totalSteps2$x))
+```
+I replace the missing value with mean of total steps. So the mean value would not be changed but it would change the median value. The estimates of the total daily number of steps would increase because NA is replaced by some positive value
 
 
 ## Are there differences in activity patterns between weekdays and weekends?
+```{r, echo=TRUE}
+suppressWarnings(library(lattice))
+data3<-transform(data2,isweekend=ifelse((weekdays(as.Date(date)) %in% c('Saturday','Sunday')),"Weekend","Weekday"))
+intervalSteps2<- aggregate(data3$steps, by=list(data3$interval,data3$isweekend), "mean")
+colnames(intervalSteps2)<-c("interval","isweekend","steps")
+xyplot(intervalSteps2$steps ~ intervalSteps2$interval |intervalSteps2$isweekend,layout = c(1, 2), type="l",xlab="Interval", ylab="Number of Steps")
+```
